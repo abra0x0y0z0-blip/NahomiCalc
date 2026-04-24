@@ -1,0 +1,3114 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>NahomiCalc</title>
+<style>
+:root {
+    --function-color: rgba(23, 81, 126, .6);
+    --function-color-active: rgba(23, 81, 126, .8);
+    --operator-color: rgba(254, 64, 64, .6);
+    --operator-color-active: rgba(254, 64, 64, .8);
+    --equals-color: rgba(64, 200, 64, .6);
+    --equals-color-active: rgba(64, 200, 64, .8);
+    --clear-color: rgba(128, 64, 64, .6);
+    --clear-color-active: rgba(128, 64, 64, .8);
+    --display-bg: rgba(0, 0, 0, .8);
+    --button-bg: rgba(0, 0, 0, .6);
+    --scientific-color: rgba(254, 254, 254, .6);
+    --scientific-color-active: rgba(254, 254, 254, .8);
+    --history-color: rgba(254, 191, 0, .6);
+    --history-color-active: rgba(254, 191, 0, .8);
+    --memory-color: rgba(103, 32, 66, .6);
+    --memory-color-active: rgba(103, 32, 66, .8);
+    --spacing-md: 1.5rem;
+    --radius-md: 0.5rem;
+    /* Oscuro */
+    --bg-body-light: linear-gradient(145deg, #e9eef3 0%, #d4dce6 100%);
+    --bg-body-dark: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+    --card-bg-light: rgba(255, 255, 255, 0.92);
+    --card-bg-dark: rgba(20, 20, 40, 0.92);
+    --text-light: #0b2b40;
+    --text-dark: #e0e0e0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: rgba(255, 255, 255, 1.);
+    min-height: 100vh;
+    display: flex;
+    padding: 20px;
+    margin: 0;
+    background: var(--bg-body-light);
+    transition: background 0.3s ease;
+}
+
+body.dark-mode {
+    background: var(--bg-body-dark);
+}
+
+body.dark-mode .calculator,
+body.dark-mode .history-panel,
+body.dark-mode .graph-panel,
+body.dark-mode .table-panel {
+    background-color: rgba(20, 20, 40, 0.92);
+    backdrop-filter: blur(10px);
+}
+
+body.dark-mode .calculator-title,
+body.dark-mode .graph-title,
+body.dark-mode .table-title,
+body.dark-mode .history-title {
+    color: #e0e0e0;
+}
+
+body.dark-mode .graph-function-input,
+body.dark-mode .table-function-input,
+body.dark-mode .graph-grid-controls,
+body.dark-mode .table-sequence-config,
+body.dark-mode .table-options{
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .graph-function-input label,
+body.dark-mode .table-function-input label,
+body.dark-mode .grid-item label,
+body.dark-mode .table-options label,
+body.dark-mode .seq-item label {
+    color: #eee;
+}
+
+body.dark-mode .graph-function-input input,
+body.dark-mode .table-function-input input,
+body.dark-mode .range-item input,
+body.dark-mode .seq-item input,
+body.dark-mode .seq-item select {
+    background: #2a2a3e;
+    color: white;
+    border-color: #4a4a6e;
+}
+
+body.dark-mode .preset-functions button {
+    background: #2a2a3e;
+    color: #ddd;
+}
+
+body.dark-mode #valuesTable td {
+    border-color: #3a3a5e;
+    color: #ddd;
+}
+
+body.dark-mode #valuesTable tr:nth-child(even) {
+    background-color: #2a2a3e;
+}
+
+body.dark-mode .summary-item {
+    background: #2a2a3e;
+    color: #ddd;
+}
+
+
+/*////////  CALCULADORA ///////// */
+
+.calculator-container {
+    display: flex;
+    gap: 20px;
+    max-width: 2000px;
+    width: 100%;
+    align-items: stretch;
+    /* ← CLAVE: estira todos al mismo alto */
+}
+
+.calculator {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(3px);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    width: 400px;
+    flex-shrink: 0;
+}
+
+.history-panel {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.display {
+    background-color: var(--display-bg);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    text-align: right;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.previous-operation {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    min-height: 1.2rem;
+    margin-bottom: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.current-operation {
+    color: white;
+    font-size: 2.2rem;
+    font-weight: 300;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+button {
+    /*border: none;*/
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: white;
+    background-color: var(--button-bg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+button:hover {
+    transform: scale(1.08);
+    transition: all 0.1s ease;
+}
+
+.operator {
+    background-color: var(--operator-color);
+}
+
+.operator:active {
+    background-color: var(--operator-color-active);
+}
+
+.equals {
+    background-color: var(--equals-color);
+}
+
+.equals:active {
+    background-color: var(--equals-color-active);
+}
+
+.clear,
+.delete {
+    background-color: var(--clear-color);
+}
+
+.clear:active,
+.delete:active {
+    background-color: var(--clear-color-active);
+}
+
+.function {
+    background-color: var(--function-color);
+}
+
+.function:active {
+    background-color: var(--function-color-active);
+}
+
+.memory {
+    background-color: var(--memory-color);
+}
+
+.memory:active {
+    background-color: var(--memory-color-active);
+}
+
+.scientific {
+    background-color: var(--scientific-color);
+    font-size: 0.9rem;
+    color: #000000;
+}
+
+.scientific:active {
+    background-color: var(--scientific-color-active);
+}
+
+.history {
+    background-color: var(--history-color);
+    font-size: 0.9rem;
+    color: #000000;
+}
+
+.history:active {
+    background-color: var(--history-color-active);
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    color: #000000;
+}
+
+.history-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.history-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.history-controls button {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+}
+
+.history-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.history-item {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 8px;
+    color: white;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.history-expression {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.history-result {
+    font-weight: bold;
+    color: #f39c12;
+}
+
+.history-timestamp {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 2px;
+}
+
+.history-empty {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+    padding: 20px;
+}
+
+button {
+    padding: 10px;
+    font-size: 1rem;
+}
+
+.current-operation {
+    font-size: 1.8rem;
+}
+
+.buttons {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.calculator-title {
+    text-align: center;
+    color: #000000;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(254, 254, 254, 0.5);
+}
+
+.mode-toggle {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.mode-btn {
+    background-color: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #888;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.mode-btn.active {
+    background-color: var(--scientific-color);
+    color: #000;
+}
+
+.themeBtn {
+
+    background-color: var(--scientific-color);
+    background: rgba(0, 0, 0, 0.8);
+    color: #000;
+    position: fixed;
+    top: 30px;
+    left: 380px;
+    color: white;
+    padding: 5px 5px;
+    border-radius: 10px;
+    z-index: 1001;
+}
+
+/* ========== NUEVOS ESTILOS PARA PANEL DE GRAFICOS ========== */
+
+.graph-panel {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 96vh;
+}
+
+.graph-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.graph-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+.graph-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.graph-btn {
+    background: rgba(153, 25, 89, 0.5);
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: transform 0.1s;
+}
+
+.graph-btn:active {
+    transform: scale(0.95);
+}
+
+.graph-function-input {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 12px;
+}
+
+.graph-function-input label {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.graph-function-input input {
+    flex: 2;
+    min-width: 150px;
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+}
+
+.graph-function-input input:focus {
+    outline: none;
+    border-color: #66eeaa;
+}
+
+.graph-function-input button {
+    background: rgba(238, 102, 170, 0.5);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.graph-function-input button:active {
+    transform: scale(0.95);
+}
+
+.graph-grid-controls,
+.graph-range-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.grid-item,
+.range-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.grid-item label,
+.range-item label {
+    font-weight: 600;
+    color: #555;
+}
+
+.grid-item input[type="range"] {
+    width: 120px;
+}
+
+.range-ctrl-pink {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 15px;
+    border-radius: 10px;
+    margin: 20px 0;
+    background: linear-gradient(to top, #ffc2e8, #ff00f2);
+}
+
+.range-item input {
+    width: 80px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+.graph-range-controls button {
+    background: rgba(134, 27, 108, 0.7);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.graph-canvas-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 8px;
+}
+
+#graphCanvas {
+    background: white;
+    border-radius: 8px;
+    cursor: crosshair;
+    display: block;
+}
+
+.graph-coords {
+    background: #1a1a2e;
+    color: #eee;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.graph-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+}
+
+.legend-colors {
+    display: flex;
+    gap: 15px;
+}
+
+.color-box {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+.preset-functions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.preset-functions button {
+    background: rgba(71, 10, 71, 0.6);
+    border: none;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.preset-functions button:active {
+    transform: scale(0.95);
+    background: rgba(234, 102, 234, 0.6);
+    color: white;
+}
+
+.panel {
+    transition: display 0.3s ease;
+}
+
+
+/* ========== ESTILOS PARA PANEL DE TABLA ========== */
+
+.table-panel {
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    max-height: 96vh;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.table-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+.table-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.table-btn {
+    background: rgba(197, 101, 10, 0.7);
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: transform 0.1s;
+}
+
+.table-btn:active {
+    transform: scale(0.95);
+}
+
+.table-function-input {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    background: #f0f0f5;
+    padding: 10px;
+    border-radius: 12px;
+}
+
+.table-function-input label {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.table-function-input input {
+    flex: 2;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+}
+
+.table-function-input input:focus {
+    outline: none;
+    border-color: rgba(230, 125, 34, 0.7);
+}
+
+.table-function-input button {
+    background: rgba(230, 125, 34, 0.7);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.table-sequence-config {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+    background: #f9f9ff;
+    padding: 15px;
+    border-radius: 12px;
+}
+
+.seq-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 0.85rem;
+}
+
+.seq-item label {
+    font-weight: 600;
+    color: #555;
+    font-size: 0.75rem;
+}
+
+.seq-item input,
+.seq-item select {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    width: 100px;
+}
+
+.generate-btn {
+    background: rgba(197, 101, 10, 0.7);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: auto;
+}
+
+.generate-btn:active {
+    transform: scale(0.95);
+}
+
+.table-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 10px;
+    background: #f0f0f5;
+    border-radius: 12px;
+}
+
+.table-options label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #333;
+}
+
+.table-summary {
+    background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    color: #333;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: space-between;
+}
+
+.summary-item {
+    display: inline-block;
+    padding: 4px 10px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table-container {
+    overflow-x: auto;
+    max-height: 400px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    background: white;
+}
+
+#valuesTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+#valuesTable th {
+    /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);*/
+    background: rgba(207, 123, 12, 0.6);
+    color: white;
+    padding: 10px 12px;
+    position: sticky;
+    top: 0;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#valuesTable td {
+    padding: 8px 12px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    font-family: 'Courier New', monospace;
+}
+
+#valuesTable tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+#valuesTable tr:hover {
+    background-color: #fff3e0;
+}
+
+.table-footer {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #666;
+    padding-top: 5px;
+}
+
+@media (max-width: 900px) {
+    .calculator-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    .calculator,
+    .history-panel {
+        width: 100%;
+        max-width: 400px;
+    }
+    .graph-panel {
+        max-height: 70vh;
+    }
+    .graph-function-input {
+        flex-direction: column;
+    }
+    .graph-function-input input {
+        width: 100%;
+    }
+    .preset-functions {
+        justify-content: center;
+    }
+    .table-panel {
+        max-height: 70vh;
+    }
+    .table-sequence-config {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .seq-item input,
+    .seq-item select {
+        width: 100%;
+    }
+    .generate-btn {
+        margin-left: 0;
+        margin-top: 10px;
+    }
+    #valuesTable {
+        font-size: 0.7rem;
+    }
+    #valuesTable th,
+    #valuesTable td {
+        padding: 5px 8px;
+    }
+}
+
+@media (max-width: 450px) {
+    .calculator,
+    .history-panel {
+        padding: 15px;
+    }
+}
+</style>
+
+</head>
+
+<body>
+    <div class="calculator-container">
+        <div class="calculator">
+            <div class="calculator-title">NahomiCalc Scientific v1</div>
+            <div class="mode-toggle">
+                <button class="mode-btn active" onclick="togglePanelMode('history')">📜 Historial</button>
+                <button class="mode-btn" onclick="togglePanelMode('graph')">📈 Gráficos</button>
+                <button class="mode-btn" onclick="togglePanelMode('table')">📊 Tabla</button>
+            </div>
+            <div class="display">
+                <div class="previous-operation" id="previous"></div>
+                <div class="current-operation" id="current">0</div>
+            </div>
+            <div class="buttons">
+                <!-- Fila 1 - Funciones científicas -->
+                <button class="scientific" onclick="calculateSin()">sin</button>
+                <button class="scientific" onclick="calculateCos()">cos</button>
+                <button class="scientific" onclick="calculateTan()">tan</button>
+                <button class="memory" onclick="memoryStore()">MS</button>
+                <button class="clear" onclick="clearAll()">C</button>
+
+                <!-- Fila 2 -->
+                <button class="scientific" onclick="calculateLog()">log</button>
+                <button class="scientific" onclick="calculateLn()">ln</button>
+                <button class="scientific" onclick="calculatePower()">x^y</button>
+                <button class="memory" onclick="memoryRecall()">MR</button>
+                <button class="memory" onclick="memoryClear()">MC</button>
+
+                <!-- Fila 3 - Bases -->
+                <button class="scientific" onclick="convertToBase2()">Base2</button>
+                <button class="scientific" onclick="convertToBase16()">Base16</button>
+                <button class="scientific" onclick="convertToBase62()">Base62</button>
+                <button class="scientific" onclick="convertFromBase2()">←Bin</button>
+                <button class="scientific" onclick="toggleAngleMode()" id="angleModeBtn">DEG</button>
+
+                <!-- Fila 4 -->
+                <button class="scientific" onclick="convertFromBase16()">←Hex</button>
+                <button class="scientific" onclick="convertFromBase62()">←B62</button>
+                <button class="scientific" onclick="degToRad()">°→rad</button>
+                <button class="scientific" onclick="radToDeg()">rad→°</button>
+                <button class="scientific" onclick="convertAngle()">Conv</button>
+
+                <!-- Fila 5 - Fila de Matrices -->
+                <button class="function" onclick="matrixMode()">[A]</button>
+                <button class="function" onclick="matrixAdd()">A+B</button>
+                <button class="function" onclick="matrixMultiply()">A×B</button>
+                <button class="function" onclick="matrixDeterminant()">|A|</button>
+                <button class="function" onclick="matrixTranspose()">Aᵀ</button>
+
+                <!-- Fila 6 -->
+                <button class="function" onclick="calculateSquare()">x²</button>
+                <button class="function" onclick="calculateSquareRoot()">√</button>
+                <button class="function" onclick="calculatePercent()">%</button>
+                <button class="operator" onclick="appendOperator('/')">÷</button>
+                <button class="scientific" onclick="calculateFactorial()">x!</button>
+
+                <!-- Fila 7 - Números -->
+                <button onclick="appendNumber('7')">7</button>
+                <button onclick="appendNumber('8')">8</button>
+                <button onclick="appendNumber('9')">9</button>
+                <button class="operator" onclick="appendOperator('*')">×</button>
+                <button class="scientific" onclick="calculatePi()">π</button>
+
+                <!-- Fila 8 -->
+                <button onclick="appendNumber('4')">4</button>
+                <button onclick="appendNumber('5')">5</button>
+                <button onclick="appendNumber('6')">6</button>
+                <button class="operator" onclick="appendOperator('-')">-</button>
+                <button class="scientific" onclick="calculateE()">e</button>
+
+                <!-- Fila 9 -->
+                <button onclick="appendNumber('1')">1</button>
+                <button onclick="appendNumber('2')">2</button>
+                <button onclick="appendNumber('3')">3</button>
+                <button class="operator" onclick="appendOperator('+')">+</button>
+                <button class="scientific" onclick="calculateExp()">EXP</button>
+
+                <!-- Fila 10 -->
+                <button class="function" onclick="toggleSign()">±</button>
+                <button onclick="appendNumber('0')">0</button>
+                <button onclick="appendDecimal()">.</button>
+                <button class="equals" onclick="calculate()" style="grid-column: span 2;">=</button>
+            </div>
+
+
+        </div>
+        <button class="themeBtn" id="themeFloatBtn" onclick="toggleTheme()">🌙</button>
+        <!-- Panel de Historial (original) -->
+        <div class="panel history-panel" id="historyPanel">
+            <div class="history-header">
+                <div class="history-title">Historial de Cálculos</div>
+                <div class="history-controls">
+                    <button class="history" onclick="clearHistory()" title="Limpiar">🗑️</button>
+                    <button class="history" onclick="downloadHistory()" title="Descargar">📥</button>
+                    <button class="history" onclick="uploadHistory()" title="Subir">📤</button>
+                    <button class="history" onclick="previewUploadedFile()" title="Vista previa">👁️</button>
+                    <button class="history" onclick="showHistoryInfo()" title="Información">ℹ️</button>
+                </div>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+
+        <!-- Panel de Gráficos (nuevo) -->
+        <div class="panel graph-panel" id="graphPanel" style="display: none;">
+            <div class="graph-header">
+                <div class="graph-title">📈 Visualizador de Curvas</div>
+                <div class="graph-controls">
+                    <button class="graph-btn" onclick="resetGraphView()" title="Resetear vista">⟳ Reset</button>
+                    <button class="graph-btn" onclick="exportGraphAsImage()" title="Exportar imagen">📸 PNG</button>
+                    <button class="graph-btn" onclick="showGraphHelp()" title="Ayuda">❓ Ayuda</button>
+                </div>
+            </div>
+
+            <!-- Controles de función -->
+            <div class="graph-function-input">
+                <label>f(x) = </label>
+                <input type="text" id="functionInput" value="sin(x)" placeholder="Ej: sin(x), cos(x), exp(-x*x), x^2">
+                <button onclick="updateGraphFunction()">📊 Graficar</button>
+                <button onclick="openFunctionHelp()">📖</button>
+            </div>
+
+            <!-- Controles de grid -->
+            <div class="graph-grid-controls">
+                <div class="grid-item">
+                    <label>Grid X:</label>
+                    <input type="range" id="gridX" class="range-ctrl-pink" min="5" max="50" step="1" value="20">
+                    <span id="gridXVal">20</span>
+                </div>
+                <div class="grid-item  pik">
+                    <label>Grid Y:</label>
+                    <input type="range" id="gridY" class="range-ctrl-pink" min="5" max="50" step="1" value="20">
+                    <span id="gridYVal">20</span>
+                </div>
+                <div class="grid-item">
+                    <label>Zoom:</label>
+                    <input type="range" id="zoomLevel" class="range-ctrl-pink" min="0.5" max="3" step="0.05" value="1">
+                    <span id="zoomVal">1.00x</span>
+                </div>
+            </div>
+
+            <!-- Rango X -->
+            <div class="graph-range-controls">
+                <div class="range-item">
+                    <label>X min:</label>
+                    <input type="number" id="xMin" value="-5" step="0.5">
+                </div>
+                <div class="range-item">
+                    <label>X max:</label>
+                    <input type="number" id="xMax" value="5" step="0.5">
+                </div>
+                <div class="range-item">
+                    <label>Y min:</label>
+                    <input type="number" id="yMin" value="-2" step="0.5">
+                </div>
+                <div class="range-item">
+                    <label>Y max:</label>
+                    <input type="number" id="yMax" value="2" step="0.5">
+                </div>
+                <button onclick="applyGraphRange()">Aplicar rango</button>
+                <button onclick="autoScaleGraph()">Auto escala</button>
+            </div>
+
+            <!-- Canvas para el gráfico -->
+            <div class="graph-canvas-container">
+                <canvas id="graphCanvas" width="700" height="450" style="width:100%; max-width:700px; height:auto; background:#fff; border-radius:12px; cursor:crosshair;"></canvas>
+                <!--max-width:100%; height:auto; --->
+            </div>
+
+            <!-- Coordenadas en tiempo real -->
+            <div class="graph-coords" id="graphCoords">
+                🖱️ Mueve el mouse sobre el gráfico: (x, y) = (---, ---)
+            </div>
+
+            <!-- Leyenda y funciones predefinidas -->
+            <div class="graph-legend">
+                <div class="legend-colors">
+                    <span><span class="color-box" style="background:#e63946;"></span> f(x) actual</span>
+                    <span><span class="color-box" style="background:#2a9d8f;"></span> Grid</span>
+                </div>
+                <div class="preset-functions">
+                    <button onclick="setPresetFunction('sin(x)')">sin(x)</button>
+                    <button onclick="setPresetFunction('cos(x)')">cos(x)</button>
+                    <button onclick="setPresetFunction('tan(x)')">tan(x)</button>
+                    <button onclick="setPresetFunction('exp(-x*x)')">e⁻ˣ²</button>
+                    <button onclick="setPresetFunction('x*x')">x²</button>
+                    <button onclick="setPresetFunction('sqrt(x)')">√x</button>
+                    <button onclick="setPresetFunction('1/(1+exp(-x))')">Sigmoide</button>
+                    <button onclick="setPresetFunction('abs(x)')">|x|</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Tabla de Valores -->
+        <div class="panel table-panel" id="tablePanel" style="display: none;">
+            <div class="table-header">
+                <div class="table-title">📊 Tabla de Valores</div>
+                <div class="table-controls">
+                    <button class="table-btn" onclick="exportTableToCSV()" title="Exportar CSV">📥 CSV</button>
+                    <button class="table-btn" onclick="showTableHelp()" title="Ayuda">❓ Ayuda</button>
+                </div>
+            </div>
+
+            <!-- Configuración de la función -->
+            <div class="table-function-input">
+                <label>f(x) = </label>
+                <input type="text" id="tableFunctionInput" value="sin(30*(3.14169/180))*x" placeholder="Ej: sin(x), cos(x), x^2, exp(-x)">
+                <button onclick="updateTableFunction()">🔄 Actualizar</button>
+            </div>
+
+            <!-- Configuración de la sucesión -->
+            <div class="table-sequence-config">
+                <div class="seq-item">
+                    <label>Desde:</label>
+                    <input type="number" id="seqStart" value="-5" step="0.5">
+                </div>
+                <div class="seq-item">
+                    <label>Hasta:</label>
+                    <input type="number" id="seqEnd" value="5" step="0.5">
+                </div>
+                <div class="seq-item">
+                    <label>Paso (Δx):</label>
+                    <input type="number" id="seqStep" value="0.5" step="0.1" min="0.01">
+                </div>
+                <div class="seq-item">
+                    <label>Decimales:</label>
+                    <select id="decimalPlaces">
+                <option value="2">2 decimales</option>
+                <option value="3">3 decimales</option>
+                <option value="4" selected>4 decimales</option>
+                <option value="5">5 decimales</option>
+                <option value="6">6 decimales</option>
+            </select>
+                </div>
+                <button onclick="generateTable()" class="generate-btn">✨ Generar Tabla</button>
+            </div>
+
+            <!-- Opciones de visualización -->
+            <div class="table-options">
+                <label>
+            <input type="checkbox" id="showDerivative" onchange="generateTable()"> 
+            Derivada f'(x)
+        </label>
+                <label>
+            <input type="checkbox" id="showIntegral" onchange="generateTable()"> 
+            Integral aproximada ∫f(x)dx
+        </label>
+                <label>
+            <input type="checkbox" id="showSecondDerivative" onchange="generateTable()"> 
+            Segunda derivada f''(x)
+        </label>
+            </div>
+
+            <!-- Resumen estadístico -->
+            <div class="table-summary" id="tableSummary">
+                <!-- Resumen se mostrará aquí -->
+            </div>
+
+            <!-- Contenedor de la tabla con scroll -->
+            <div class="table-container">
+                <table id="valuesTable">
+                    <thead id="tableHeader">
+                        <!-- Header dinámico -->
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="2">Configura los parámetros y haz clic en "Generar Tabla"</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="table-footer">
+                <span id="tableInfo">📐 Tabla de valores generada dinámicamente</span>
+            </div>
+        </div>
+
+        <script>
+            /*
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               Calculadora normal y cientifica con opcion de guardado
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            */
+
+            let currentInput = '0';
+            let previousInput = '';
+            let operation = null;
+            let shouldResetScreen = false;
+            let memory = 0;
+            let isScientificMode = false;
+            let isDegreeMode = true;
+            let calculationHistory = [];
+
+            const currentDisplay = document.getElementById('current');
+            const previousDisplay = document.getElementById('previous');
+            const historyList = document.getElementById('historyList');
+
+            // Cargar historial desde localStorage al iniciar
+            function loadHistory() {
+                const savedHistory = localStorage.getItem('calculatorHistory');
+                if (savedHistory) {
+                    calculationHistory = JSON.parse(savedHistory);
+                }
+                renderHistory();
+            }
+
+            // Guardar historial en localStorage
+            function saveHistory() {
+                localStorage.setItem('calculatorHistory', JSON.stringify(calculationHistory));
+            }
+
+            // Agregar entrada al historial
+            function addToHistory(expression, result) {
+                const historyEntry = {
+                    id: Date.now(),
+                    expression: expression,
+                    result: result,
+                    timestamp: new Date().toLocaleString('es-ES'),
+                    date: new Date().toISOString()
+                };
+
+                calculationHistory.unshift(historyEntry);
+
+                // Mantener solo los últimos 50 cálculos
+                if (calculationHistory.length > 50) {
+                    calculationHistory = calculationHistory.slice(0, 50);
+                }
+
+                saveHistory();
+                renderHistory();
+            }
+
+            // Renderizar el historial en la interfaz
+            function renderHistory() {
+                if (calculationHistory.length === 0) {
+                    historyList.innerHTML = '<div class="history-empty">No hay cálculos en el historial</div>';
+                    return;
+                }
+
+                historyList.innerHTML = calculationHistory.map(entry => `
+<div class="history-item">
+    <div class="history-content">
+<div class="history-expression">${entry.expression}</div>
+<div class="history-result">= ${entry.result}</div>
+<div class="history-timestamp">${entry.timestamp}</div>
+    </div>
+    <button class="history" onclick="useHistoryResult('${entry.result}')" style="padding: 3px 6px; font-size: 0.7rem;">Usar</button>
+</div>
+    `).join('');
+            }
+
+            // Usar resultado del historial
+            function useHistoryResult(result) {
+                currentInput = result.toString();
+                shouldResetScreen = true;
+                updateDisplay();
+            }
+
+            // Limpiar historial
+            function clearHistory() {
+                if (confirm('¿Estás seguro de que quieres limpiar todo el historial?')) {
+                    calculationHistory = [];
+                    saveHistory();
+                    renderHistory();
+                }
+            }
+
+            // Descargar historial como JSON
+            function downloadHistory() {
+                if (calculationHistory.length === 0) {
+                    alert('No hay cálculos para descargar');
+                    return;
+                }
+
+                const historyData = {
+                    metadata: {
+                        exportedAt: new Date().toISOString(),
+                        totalCalculations: calculationHistory.length,
+                        calculator: "Calculadora Científica"
+                    },
+                    calculations: calculationHistory
+                };
+
+                const dataStr = JSON.stringify(historyData, null, 2);
+                const dataBlob = new Blob([dataStr], {
+                    type: 'application/json'
+                });
+
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `historial_calculadora_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+            }
+
+            ///
+
+
+            // Cargar historial desde archivo JSON
+            function uploadHistory() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+
+                input.onchange = function(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const uploadedData = JSON.parse(e.target.result);
+
+                            // Verificar que el archivo tenga la estructura correcta
+                            if (!uploadedData.calculations || !Array.isArray(uploadedData.calculations)) {
+                                alert('El archivo no tiene un formato válido de historial');
+                                return;
+                            }
+
+                            // Preguntar al usuario cómo quiere importar
+                            const importOption = confirm(
+                                '¿Quieres reemplazar el historial actual o agregar al existente?\n\n' +
+                                'Click en "Aceptar" para REEMPLAZAR el historial actual\n' +
+                                'Click en "Cancelar" para AGREGAR al historial existente'
+                            );
+
+                            if (importOption) {
+                                // Reemplazar historial
+                                calculationHistory = [...uploadedData.calculations];
+                            } else {
+                                // Agregar al historial existente
+                                calculationHistory = [...uploadedData.calculations, ...calculationHistory];
+                            }
+
+                            // Mantener solo los últimos 50 cálculos
+                            if (calculationHistory.length > 50) {
+                                calculationHistory = calculationHistory.slice(0, 50);
+                            }
+
+                            saveHistory();
+                            renderHistory();
+
+                            alert(`Historial importado exitosamente!\nSe importaron ${uploadedData.calculations.length} cálculos`);
+
+                        } catch (error) {
+                            alert('Error al leer el archivo: ' + error.message);
+                        }
+                    };
+
+                    reader.readAsText(file);
+                };
+
+                input.click();
+            }
+
+            // Función para previsualizar el contenido del archivo antes de importar
+            function previewUploadedFile() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+
+                input.onchange = function(event) {
+                        const file = event.target.files[0];
+                        if (!file) return;
+
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                                try {
+                                    const uploadedData = JSON.parse(e.target.result);
+
+                                    if (!uploadedData.calculations || !Array.isArray(uploadedData.calculations)) {
+                                        alert('El archivo no tiene un formato válido de historial');
+                                        return;
+                                    }
+
+                                    // Mostrar previsualización
+                                    const preview = `
+Archivo: ${file.name}
+Tamaño: ${(file.size / 1024).toFixed(2)} KB
+Cálculos: ${uploadedData.calculations.length}
+Exportado: ${new Date(uploadedData.metadata?.exportedAt || '').toLocaleString('es-ES')}
+
+Primeros 3 cálculos:
+${uploadedData.calculations.slice(0, 3).map(calc => 
+    `• ${calc.expression} = ${calc.result}`
+).join('\n')}
+
+¿Quieres importar este historial?
+                `;
+                
+                const shouldImport = confirm(preview);
+                if (shouldImport) {
+                    // Preguntar por el método de importación
+                    const importOption = confirm(
+                        '¿Cómo quieres importar?\n\n' +
+                        'Aceptar: REEMPLAZAR historial actual\n' +
+                        'Cancelar: AGREGAR al historial existente'
+                    );
+                    
+                    if (importOption) {
+                        calculationHistory = [...uploadedData.calculations];
+                    } else {
+                        calculationHistory = [...uploadedData.calculations, ...calculationHistory];
+                    }
+                    
+                    if (calculationHistory.length > 50) {
+                        calculationHistory = calculationHistory.slice(0, 50);
+                    }
+                    
+                    saveHistory();
+                    renderHistory();
+                    alert(`Historial importado! ${uploadedData.calculations.length} cálculos añadidos.`);
+                }
+                
+            } catch (error) {
+                alert('Error al leer el archivo: ' + error.message);
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    input.click();
+}
+
+// Validar entrada del historial
+function validateHistoryEntry(entry) {
+    return entry && 
+           typeof entry.expression === 'string' && 
+           typeof entry.result === 'string' &&
+           !isNaN(parseFloat(entry.result));
+}
+
+// Función para mostrar información del historial actual
+function showHistoryInfo() {
+    const info = `
+Historial Actual:
+• Total de cálculos: ${calculationHistory.length}
+• Límite: 50 cálculos
+• Último cálculo: ${calculationHistory[0]?.timestamp || 'Ninguno'}
+• Espacio usado: ${localStorage.getItem('calculatorHistory') ? 
+    (localStorage.getItem('calculatorHistory').length / 1024).toFixed(2) + ' KB' : '0 KB'}
+    `;
+    
+    alert(info);
+}
+
+// Funciones de la calculadora (modificadas para incluir historial)
+function updateDisplay() {
+    currentDisplay.textContent = currentInput;
+    if (operation != null) {
+previousDisplay.textContent = `${previousInput} ${operation}`;
+    } else {
+previousDisplay.textContent = '';
+    }
+}
+
+function appendNumber(number) {
+    if (currentInput === '0' || shouldResetScreen) {
+currentInput = number;
+shouldResetScreen = false;
+    } else {
+currentInput += number;
+    }
+    updateDisplay();
+}
+
+function appendOperator(op) {
+    if (operation !== null) calculate();
+    previousInput = currentInput;
+    operation = op;
+    shouldResetScreen = true;
+    updateDisplay();
+}
+
+function appendDecimal() {
+    if (shouldResetScreen) {
+currentInput = '0.';
+shouldResetScreen = false;
+    } else if (!currentInput.includes('.')) {
+currentInput += '.';
+    }
+    updateDisplay();
+}
+
+function calculate() {
+    let computation;
+    const prev = parseFloat(previousInput);
+    const current = parseFloat(currentInput);
+    
+    if (isNaN(prev) || isNaN(current)) return;
+    
+    let expression = `${previousInput} ${operation} ${currentInput}`;
+    
+    switch (operation) {
+case '+':
+    computation = prev + current;
+    break;
+case '-':
+    computation = prev - current;
+    break;
+case '*':
+    computation = prev * current;
+    break;
+case '/':
+    if (current === 0) {
+computation = 'Error';
+    } else {
+computation = prev / current;
+    }
+    break;
+case '^':
+    computation = Math.pow(prev, current);
+    break;
+default:
+    return;
+    }
+    
+    // Agregar al historial solo si no es un error
+    if (computation !== 'Error') {
+addToHistory(expression, computation.toString());
+    }
+    
+    currentInput = computation.toString();
+    operation = null;
+    previousInput = '';
+    shouldResetScreen = true;
+    updateDisplay();
+}
+
+// Modificar funciones científicas para que también guarden en historial
+function createScientificFunction(operationName, operationFunction) {
+    return function() {
+const current = parseFloat(currentInput);
+if (isNaN(current)) return;
+
+const result = operationFunction(current);
+
+if (result !== 'Error') {
+    addToHistory(`${operationName}(${current})`, result.toString());
+}
+
+currentInput = result.toString();
+updateDisplay();
+    };
+}
+
+// Funciones científicas con historial
+const calculateSin = createScientificFunction('sin', (current) => {
+    let angle = isDegreeMode ? current * Math.PI / 180 : current;
+    return Math.sin(angle);
+});
+
+const calculateCos = createScientificFunction('cos', (current) => {
+    let angle = isDegreeMode ? current * Math.PI / 180 : current;
+    return Math.cos(angle);
+});
+
+const calculateTan = createScientificFunction('tan', (current) => {
+    let angle = isDegreeMode ? current * Math.PI / 180 : current;
+    if (Math.abs(Math.cos(angle)) < 1e-10) {
+return 'Error';
+    }
+    return Math.tan(angle);
+});
+
+const calculateLog = createScientificFunction('log', (current) => {
+    return current <= 0 ? 'Error' : Math.log10(current);
+});
+
+const calculateLn = createScientificFunction('ln', (current) => {
+    return current <= 0 ? 'Error' : Math.log(current);
+});
+
+function calculateSquare() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) return;
+    
+    const result = current * current;
+    addToHistory(`(${current})²`, result.toString());
+    currentInput = result.toString();
+    updateDisplay();
+}
+
+function calculateSquareRoot() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) return;
+    
+    if (current < 0) {
+currentInput = 'Error';
+    } else {
+const result = Math.sqrt(current);
+addToHistory(`√(${current})`, result.toString());
+currentInput = result.toString();
+    }
+    updateDisplay();
+}
+
+function calculateFactorial() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) return;
+    
+    if (current < 0 || !Number.isInteger(current)) {
+currentInput = 'Error';
+    } else {
+let result = 1;
+for (let i = 2; i <= current; i++) {
+    result *= i;
+}
+addToHistory(`factorial(${current})`, result.toString());
+currentInput = result.toString();
+    }
+    updateDisplay();
+}
+
+function calculatePower() {
+    if (operation !== null) calculate();
+    previousInput = currentInput;
+    operation = '^';
+    shouldResetScreen = true;
+    updateDisplay();
+}
+
+function calculatePi() {
+    currentInput = Math.PI.toString();
+    updateDisplay();
+}
+
+function calculateE() {
+    currentInput = Math.E.toString();
+    updateDisplay();
+}
+
+function calculateExp() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) return;
+    
+    const result = Math.exp(current);
+    addToHistory(`exp(${current})`, result.toString());
+    currentInput = result.toString();
+    updateDisplay();
+}
+
+function calculatePercent() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) return;
+    
+    currentInput = (current / 100).toString();
+    updateDisplay();
+}
+
+function toggleSign() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) return;
+    
+    currentInput = (current * -1).toString();
+    updateDisplay();
+}
+
+function clearAll() {
+    currentInput = '0';
+    previousInput = '';
+    operation = null;
+    shouldResetScreen = false;
+    updateDisplay();
+}
+
+// Funciones de memoria
+function memoryStore() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) return;
+    memory = current;
+}
+
+function memoryRecall() {
+    currentInput = memory.toString();
+    updateDisplay();
+}
+
+function memoryClear() {
+    memory = 0;
+}
+
+// ============================================
+// MANEJO DE TECLADO MEJORADO (sin interferir con inputs)
+// ============================================
+
+function handleKeyboardInput(event) {
+    // Verificar si algún input o textarea está enfocado
+    const activeElement = document.activeElement;
+    const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.isContentEditable
+    );
+    
+    // Si hay un input enfocado, ignorar el atajo de teclado
+    if (isInputFocused) return;
+    
+    // Prevenir comportamientos no deseados
+    const key = event.key;
+    
+    // Números
+    if (/[0-9]/.test(key)) {
+        event.preventDefault();
+        appendNumber(key);
+    }
+    // Decimal
+    else if (key === '.') {
+        event.preventDefault();
+        appendDecimal();
+    }
+    // Operadores
+    else if (key === '+') {
+        event.preventDefault();
+        appendOperator('+');
+    }
+    else if (key === '-') {
+        event.preventDefault();
+        appendOperator('-');
+    }
+    else if (key === '*') {
+        event.preventDefault();
+        appendOperator('*');
+    }
+    else if (key === '/') {
+        event.preventDefault();
+        appendOperator('/');
+    }
+    // Enter / = para calcular
+    else if (key === 'Enter' || key === '=') {
+        event.preventDefault();
+        calculate();
+    }
+    // Escape para limpiar
+    else if (key === 'Escape') {
+        event.preventDefault();
+        clearAll();
+    }
+    // Backspace para borrar
+    else if (key === 'Backspace') {
+        event.preventDefault();
+        if (currentInput.length > 1) {
+            currentInput = currentInput.slice(0, -1);
+        } else {
+            currentInput = '0';
+        }
+        updateDisplay();
+    }
+    // Constantes
+    else if (key === 'p' || key === 'P') {
+        event.preventDefault();
+        calculatePi();
+    }
+    // Funciones trigonométricas
+    else if (key === 's' || key === 'S') {
+        event.preventDefault();
+        calculateSin();
+    }
+    else if (key === 'c' || key === 'C') {
+        if (event.ctrlKey) return; // Evitar conflictos con Ctrl+C
+        event.preventDefault();
+        calculateCos();
+    }
+    else if (key === 't' || key === 'T') {
+        event.preventDefault();
+        calculateTan();
+    }
+    // Alternar entre paneles con tecla H
+    else if (key === 'h' || key === 'H') {
+        event.preventDefault();
+        // Ciclar entre modos
+        const currentMode = document.querySelector('.mode-btn.active')?.innerText.includes('Historial') ? 'history' :
+                           document.querySelector('.mode-btn.active')?.innerText.includes('Gráficos') ? 'graph' : 'table';
+        if (currentMode === 'history') togglePanelMode('graph');
+        else if (currentMode === 'graph') togglePanelMode('table');
+        else togglePanelMode('history');
+    }
+}
+
+// Registrar el evento (solo si no existe ya)
+document.removeEventListener('keydown', handleKeyboardInput);
+document.addEventListener('keydown', handleKeyboardInput);
+
+
+// Detectar si se está ejecutando en Android
+const isAndroid = /Android/i.test(navigator.userAgent);
+
+if (isAndroid) {
+    // Ajustes específicos para Android
+    document.body.style.paddingBottom = '20px'; // Evitar recortes
+    
+    // Usar interfaz nativa para compartir
+    window.shareResult = function(result) {
+        if (window.Android) {
+            Android.shareCalculation(result);
+        } else {
+            // Fallback
+            alert('Compartir: ' + result);
+        }
+    };
+    
+    // Mostrar toasts nativos
+    window.showMessage = function(msg) {
+        if (window.Android) {
+            Android.showToast(msg);
+        } else {
+            console.log(msg);
+        }
+    };
+}
+
+// Mejorar el guardado en Android
+const originalSaveHistory = saveHistory;
+saveHistory = function() {
+    originalSaveHistory();
+    if (isAndroid) {
+        // Forzar sincronización en Android
+        setTimeout(() => {
+            console.log('Historial guardado en Android');
+        }, 100);
+    }
+};
+
+// ============================================
+// FUNCIONES PARA CAMBIO DE BASE
+// ============================================
+
+// Convertir número actual a Base 2 (binario)
+function convertToBase2() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) {
+        currentInput = 'Error';
+        updateDisplay();
+        return;
+    }
+    
+    // Verificar si es entero
+    if (!Number.isInteger(current)) {
+        currentInput = 'Error: Solo enteros';
+        updateDisplay();
+        showMessage('La conversión a binario solo admite números enteros');
+        return;
+    }
+    
+    const result = current.toString(2);
+    addToHistory(`${current} (dec) → (bin)`, result);
+    currentInput = result;
+    updateDisplay();
+}
+
+// Convertir número actual a Base 16 (hexadecimal)
+function convertToBase16() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) {
+        currentInput = 'Error';
+        updateDisplay();
+        return;
+    }
+    
+    if (!Number.isInteger(current)) {
+        currentInput = 'Error: Solo enteros';
+        updateDisplay();
+        showMessage('La conversión a hexadecimal solo admite números enteros');
+        return;
+    }
+    
+    const result = current.toString(16).toUpperCase();
+    addToHistory(`${current} (dec) → (hex)`, result);
+    currentInput = result;
+    updateDisplay();
+}
+
+// Convertir número actual a Base 62
+function convertToBase62() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) {
+        currentInput = 'Error';
+        updateDisplay();
+        return;
+    }
+    
+    if (!Number.isInteger(current)) {
+        currentInput = 'Error: Solo enteros';
+        updateDisplay();
+        showMessage('La conversión a Base62 solo admite números enteros');
+        return;
+    }
+    
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    let num = Math.abs(current);
+    let result = '';
+    
+    if (num === 0) {
+        result = '0';
+    } else {
+        while (num > 0) {
+            result = chars[num % 62] + result;
+            num = Math.floor(num / 62);
+        }
+    }
+    
+    // Agregar signo negativo si corresponde
+    if (current < 0) {
+        result = '-' + result;
+    }
+    
+    addToHistory(`${current} (dec) → (base62)`, result);
+    currentInput = result;
+    updateDisplay();
+}
+
+// Convertir desde Base 2 a decimal
+function convertFromBase2() {
+    const input = currentInput.trim();
+    // Validar que solo contenga 0 y 1
+    if (!/^[01]+$/.test(input)) {
+        currentInput = 'Error: Binario inválido';
+        updateDisplay();
+        showMessage('Ingrese solo 0 y 1 para números binarios');
+        return;
+    }
+    
+    const result = parseInt(input, 2);
+    if (isNaN(result)) {
+        currentInput = 'Error';
+    } else {
+        addToHistory(`${input} (bin) → (dec)`, result.toString());
+        currentInput = result.toString();
+    }
+    updateDisplay();
+}
+
+// Convertir desde Base 16 a decimal
+function convertFromBase16() {
+    const input = currentInput.trim().toUpperCase();
+    // Validar caracteres hexadecimales
+    if (!/^[0-9A-F]+$/.test(input)) {
+        currentInput = 'Error: Hexadecimal inválido';
+        updateDisplay();
+        showMessage('Ingrese solo 0-9 y A-F para números hexadecimales');
+        return;
+    }
+    
+    const result = parseInt(input, 16);
+    if (isNaN(result)) {
+        currentInput = 'Error';
+    } else {
+        addToHistory(`${input} (hex) → (dec)`, result.toString());
+        currentInput = result.toString();
+    }
+    updateDisplay();
+}
+
+// Convertir desde Base 62 a decimal
+function convertFromBase62() {
+    const input = currentInput.trim();
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    let result = 0;
+    
+    // Validar si el primer carácter es negativo
+    let isNegative = false;
+    let numberStr = input;
+    if (input[0] === '-') {
+        isNegative = true;
+        numberStr = input.substring(1);
+    }
+    
+    // Validar que todos los caracteres sean válidos para Base62
+    for (let i = 0; i < numberStr.length; i++) {
+        const char = numberStr[i];
+        if (chars.indexOf(char) === -1) {
+            currentInput = 'Error: Base62 inválido';
+            updateDisplay();
+            showMessage('Carácter inválido para Base62');
+            return;
+        }
+    }
+    
+    // Convertir
+    for (let i = 0; i < numberStr.length; i++) {
+        const char = numberStr[i];
+        const value = chars.indexOf(char);
+        result = result * 62 + value;
+    }
+    
+    if (isNegative) {
+        result = -result;
+    }
+    
+    addToHistory(`${input} (base62) → (dec)`, result.toString());
+    currentInput = result.toString();
+    updateDisplay();
+}
+
+
+// ============================================
+// FUNCIONES DE MATRICES (BÁSICO)
+// ============================================
+
+let matrixA = null;
+let matrixB = null;
+
+function matrixMode() {
+    const size = prompt('Tamaño de la matriz (n x n):', '3');
+    const n = parseInt(size);
+    if (isNaN(n) || n < 1 || n > 5) {
+        alert('Tamaño inválido (1-5)');
+        return;
+    }
+    
+    matrixA = [];
+    let inputStr = '';
+    for (let i = 0; i < n; i++) {
+        matrixA[i] = [];
+        for (let j = 0; j < n; j++) {
+            const val = parseFloat(prompt(`Matriz A[${i+1}][${j+1}]:`, '0'));
+            matrixA[i][j] = isNaN(val) ? 0 : val;
+        }
+    }
+    
+    showMessage(`Matriz A ${n}x${n} guardada`);
+    console.table(matrixA);
+}
+
+function matrixAdd() {
+    if (!matrixA) {
+        alert('Primero guarda una matriz A con el botón [A]');
+        return;
+    }
+    
+    const size = matrixA.length;
+    let result = [];
+    for (let i = 0; i < size; i++) {
+        result[i] = [];
+        for (let j = 0; j < size; j++) {
+            const valB = parseFloat(prompt(`Matriz B[${i+1}][${j+1}]:`, '0'));
+            result[i][j] = matrixA[i][j] + (isNaN(valB) ? 0 : valB);
+        }
+    }
+    
+    currentInput = formatMatrix(result);
+    updateDisplay();
+    addToHistory('A + B', formatMatrix(result));
+}
+
+function matrixMultiply() {
+    if (!matrixA) {
+        alert('Primero guarda una matriz A con el botón [A]');
+        return;
+    }
+    
+    const size = matrixA.length;
+    let matrixB = [];
+    for (let i = 0; i < size; i++) {
+        matrixB[i] = [];
+        for (let j = 0; j < size; j++) {
+            const val = parseFloat(prompt(`Matriz B[${i+1}][${j+1}]:`, '0'));
+            matrixB[i][j] = isNaN(val) ? 0 : val;
+        }
+    }
+    
+    let result = [];
+    for (let i = 0; i < size; i++) {
+        result[i] = [];
+        for (let j = 0; j < size; j++) {
+            result[i][j] = 0;
+            for (let k = 0; k < size; k++) {
+                result[i][j] += matrixA[i][k] * matrixB[k][j];
+            }
+        }
+    }
+    
+    currentInput = formatMatrix(result);
+    updateDisplay();
+    addToHistory('A × B', formatMatrix(result));
+}
+
+function matrixDeterminant() {
+    if (!matrixA) {
+        alert('Primero guarda una matriz A con el botón [A]');
+        return;
+    }
+    
+    const det = calculateDeterminant(matrixA);
+    currentInput = det.toString();
+    updateDisplay();
+    addToHistory('det(A)', det.toString());
+}
+
+function calculateDeterminant(matrix) {
+    const n = matrix.length;
+    if (n === 1) return matrix[0][0];
+    if (n === 2) return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+    
+    let det = 0;
+    for (let i = 0; i < n; i++) {
+        const subMatrix = matrix.slice(1).map(row => row.filter((_, idx) => idx !== i));
+        det += matrix[0][i] * Math.pow(-1, i) * calculateDeterminant(subMatrix);
+    }
+    return det;
+}
+
+function matrixTranspose() {
+    if (!matrixA) {
+        alert('Primero guarda una matriz A con el botón [A]');
+        return;
+    }
+    
+    const n = matrixA.length;
+    let result = [];
+    for (let i = 0; i < n; i++) {
+        result[i] = [];
+        for (let j = 0; j < n; j++) {
+            result[i][j] = matrixA[j][i];
+        }
+    }
+    
+    currentInput = formatMatrix(result);
+    updateDisplay();
+    addToHistory('Aᵀ', formatMatrix(result));
+}
+
+function formatMatrix(matrix) {
+    return matrix.map(row => `[${row.map(v => v.toFixed(2)).join(', ')}]`).join('; ');
+}
+
+// ============================================
+// FUNCIÓN PARA CONVERSIÓN DE GRADOS
+// ============================================
+
+// Convertir entre grados, radianes y gradianes
+let currentAngleMode = 'deg'; // 'deg', 'rad', 'grad'
+
+function toggleAngleMode() {
+    switch(currentAngleMode) {
+        case 'deg':
+            currentAngleMode = 'rad';
+            showMessage('Modo: Radianes');
+            break;
+        case 'rad':
+            currentAngleMode = 'grad';
+            showMessage('Modo: Gradianes');
+            break;
+        case 'grad':
+            currentAngleMode = 'deg';
+            showMessage('Modo: Grados');
+            break;
+    }
+    
+    const angleBtn = document.getElementById('angleModeBtn');
+    if (angleBtn) {
+        angleBtn.textContent = currentAngleMode.toUpperCase();
+    }
+}
+
+// Convertir el valor actual entre unidades de ángulo
+function convertAngle() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) {
+        currentInput = 'Error';
+        updateDisplay();
+        return;
+    }
+    
+    // Guardar el modo actual para mostrar en el historial
+    const fromMode = currentAngleMode;
+    let result;
+    let toMode;
+    
+    // Primero convertir a grados
+    let inDegrees;
+    switch(currentAngleMode) {
+        case 'deg':
+            inDegrees = current;
+            break;
+        case 'rad':
+            inDegrees = current * (180 / Math.PI);
+            break;
+        case 'grad':
+            inDegrees = current * (9 / 10);
+            break;
+    }
+    
+    // Preguntar a qué unidad convertir
+    toMode = prompt('Convertir a:\n1 - Grados\n2 - Radianes\n3 - Gradianes', '1');
+    
+    switch(toMode) {
+        case '1':
+        case 'deg':
+            result = inDegrees;
+            toMode = 'grados';
+            break;
+        case '2':
+        case 'rad':
+            result = inDegrees * (Math.PI / 180);
+            toMode = 'radianes';
+            break;
+        case '3':
+        case 'grad':
+            result = inDegrees * (10 / 9);
+            toMode = 'gradianes';
+            break;
+        default:
+            return;
+    }
+    
+    addToHistory(`${current} ${fromMode} → ${toMode}`, result.toString());
+    currentInput = result.toString();
+    updateDisplay();
+}
+
+// Función para convertir grados a radianes (rápida)
+function degToRad() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) return;
+    
+    const result = current * (Math.PI / 180);
+    addToHistory(`${current}° → rad`, result.toString());
+    currentInput = result.toString();
+    updateDisplay();
+}
+
+// Función para convertir radianes a grados (rápida)
+function radToDeg() {
+    const current = parseFloat(currentInput);
+    if (isNaN(current)) return;
+    
+    const result = current * (180 / Math.PI);
+    addToHistory(`${current} rad → °`, result.toString());
+    currentInput = result.toString();
+    updateDisplay();
+}
+
+
+// ============================================
+// NUEVO MÓDULO: TABLA DE VALORES
+// ============================================
+
+let currentTableFunctionStr = 'sin(30*(3.14169/180))*x';
+let currentTableData = [];
+
+// Panel toggle actualizado
+function togglePanelMode(mode) {
+    const historyPanel = document.getElementById('historyPanel');
+    const graphPanel = document.getElementById('graphPanel');
+    const tablePanel = document.getElementById('tablePanel');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    
+    if (mode === 'history') {
+        historyPanel.style.display = 'flex';
+        graphPanel.style.display = 'none';
+        tablePanel.style.display = 'none';
+        modeBtns[0].classList.add('active');
+        modeBtns[1].classList.remove('active');
+        modeBtns[2].classList.remove('active');
+    } else if (mode === 'graph') {
+        historyPanel.style.display = 'none';
+        graphPanel.style.display = 'flex';
+        tablePanel.style.display = 'none';
+        modeBtns[0].classList.remove('active');
+        modeBtns[1].classList.add('active');
+        modeBtns[2].classList.remove('active');
+        if (!graphCanvas) {
+            initGraphPanel();
+        } else {
+            drawGraph();
+        }
+    } else if (mode === 'table') {
+        historyPanel.style.display = 'none';
+        graphPanel.style.display = 'none';
+        tablePanel.style.display = 'flex';
+        modeBtns[0].classList.remove('active');
+        modeBtns[1].classList.remove('active');
+        modeBtns[2].classList.add('active');
+        // Generar tabla inicial si hay datos
+        if (currentTableData.length === 0) {
+            generateTable();
+        }
+    }
+}
+
+// Evaluar función para tabla (similar a la del gráfico)
+function evaluateTableFunction(x, funcStr = null) {
+    const fnStr = funcStr || currentTableFunctionStr;
+    try {
+        let expr = fnStr
+            .replace(/\\?sin/g, 'Math.sin')
+            .replace(/\\?cos/g, 'Math.cos')
+            .replace(/\\?tan/g, 'Math.tan')
+            .replace(/\\?exp/g, 'Math.exp')
+            .replace(/\\?log/g, 'Math.log10')
+            .replace(/\\?ln/g, 'Math.log')
+            .replace(/\\?sqrt/g, 'Math.sqrt')
+            .replace(/\\?abs/g, 'Math.abs')
+            .replace(/\\?pow/g, 'Math.pow')
+            .replace(/\\?PI/g, 'Math.PI')
+            .replace(/\\?E/g, 'Math.E')
+            .replace(/\^/g, '**');
+        
+        const fn = new Function('x', 'return ' + expr);
+        const result = fn(x);
+        return isFinite(result) ? result : NaN;
+    } catch(e) {
+        return NaN;
+    }
+}
+
+// Calcular derivada numérica (diferencia central)
+function numericalDerivative(x, funcStr) {
+    const h = 1e-6;
+    const f1 = evaluateTableFunction(x + h, funcStr);
+    const f2 = evaluateTableFunction(x - h, funcStr);
+    if (isNaN(f1) || isNaN(f2)) return NaN;
+    return (f1 - f2) / (2 * h);
+}
+
+// Calcular segunda derivada numérica
+function numericalSecondDerivative(x, funcStr) {
+    const h = 1e-4;
+    const f1 = evaluateTableFunction(x + h, funcStr);
+    const f2 = evaluateTableFunction(x, funcStr);
+    const f3 = evaluateTableFunction(x - h, funcStr);
+    if (isNaN(f1) || isNaN(f2) || isNaN(f3)) return NaN;
+    return (f1 - 2 * f2 + f3) / (h * h);
+}
+
+// Calcular integral acumulada (método del trapecio)
+function calculateIntegral(xValues, yValues) {
+    let integral = 0;
+    const integrals = [0];
+    for (let i = 1; i < xValues.length; i++) {
+        const dx = xValues[i] - xValues[i-1];
+        integral += (yValues[i-1] + yValues[i]) / 2 * dx;
+        integrals.push(integral);
+    }
+    return integrals;
+}
+
+// Actualizar función desde input de tabla
+function updateTableFunction() {
+    const input = document.getElementById('tableFunctionInput');
+    if (!input) return;
+    
+    const funcStr = input.value.trim();
+    if (!funcStr) return;
+    
+    // Validar función
+    try {
+        const testFn = new Function('x', 'return ' + funcStr.replace(/sin|cos|tan|exp|log|sqrt|abs/g, 'Math.$&'));
+        testFn(1);
+        currentTableFunctionStr = funcStr;
+        generateTable();
+        showMessage('✅ Función actualizada para tabla: f(x) = ' + funcStr);
+    } catch(e) {
+        alert('Función inválida: ' + e.message);
+    }
+}
+
+// Generar tabla completa
+function generateTable() {
+    const start = parseFloat(document.getElementById('seqStart').value);
+    const end = parseFloat(document.getElementById('seqEnd').value);
+    const step = parseFloat(document.getElementById('seqStep').value);
+    const decimals = parseInt(document.getElementById('decimalPlaces').value);
+    const showDeriv = document.getElementById('showDerivative').checked;
+    const showInteg = document.getElementById('showIntegral').checked;
+    const showSecondDeriv = document.getElementById('showSecondDerivative').checked;
+    
+    if (isNaN(start) || isNaN(end) || isNaN(step) || step <= 0) {
+        alert('Parámetros inválidos. Verifica los valores.');
+        return;
+    }
+    
+    if (start >= end) {
+        alert('El valor "Desde" debe ser menor que "Hasta"');
+        return;
+    }
+    
+    // Generar valores de x
+    const xValues = [];
+    for (let x = start; x <= end + step/2; x += step) {
+        xValues.push(parseFloat(x.toFixed(10)));
+    }
+    
+    // Calcular valores de la función
+    const yValues = xValues.map(x => evaluateTableFunction(x));
+    
+    // Calcular derivadas si es necesario
+    let derivatives = [];
+    let secondDerivatives = [];
+    let integrals = [];
+    
+    if (showDeriv) {
+        derivatives = xValues.map(x => numericalDerivative(x, currentTableFunctionStr));
+    }
+    
+    if (showSecondDeriv) {
+        secondDerivatives = xValues.map(x => numericalSecondDerivative(x, currentTableFunctionStr));
+    }
+    
+    if (showInteg) {
+        integrals = calculateIntegral(xValues, yValues);
+    }
+    
+    // Guardar datos para exportar
+    currentTableData = {
+        xValues, yValues, derivatives, secondDerivatives, integrals,
+        decimals, showDeriv, showInteg, showSecondDeriv,
+        functionStr: currentTableFunctionStr
+    };
+    
+    // Renderizar tabla
+    renderTable(xValues, yValues, derivatives, secondDerivatives, integrals, decimals, 
+                showDeriv, showInteg, showSecondDeriv);
+    
+    // Actualizar resumen
+    updateTableSummary(yValues, integrals, xValues);
+}
+
+// Renderizar tabla HTML
+function renderTable(xValues, yValues, derivatives, secondDerivatives, integrals, decimals, 
+                     showDeriv, showInteg, showSecondDeriv) {
+    const thead = document.getElementById('tableHeader');
+    const tbody = document.getElementById('tableBody');
+    
+    if (!thead || !tbody) return;
+    
+    // Construir header
+    let headerHtml = '<tr><th>x</th><th>f(x)</th>';
+    if (showDeriv) headerHtml += '<th>f\'(x)</th>';
+    if (showSecondDeriv) headerHtml += '<th>f\'\'(x)</th>';
+    if (showInteg) headerHtml += '<th>∫f(x)dx</th>';
+    headerHtml += '</tr>';
+    thead.innerHTML = headerHtml;
+    
+    // Construir cuerpo
+    let bodyHtml = '';
+    const format = (val) => {
+        if (isNaN(val) || !isFinite(val)) return '---';
+        return val.toFixed(decimals);
+    };
+    
+    for (let i = 0; i < xValues.length; i++) {
+        bodyHtml += '<tr>';
+        bodyHtml += `<td style="font-weight:600;">${format(xValues[i])}</td>`;
+        bodyHtml += `<td style="color:#e63946;">${format(yValues[i])}</td>`;
+        
+        if (showDeriv) {
+            const color = derivatives[i] >= 0 ? '#27ae60' : '#e67e22';
+            bodyHtml += `<td style="color:${color};">${format(derivatives[i])}</td>`;
+        }
+        if (showSecondDeriv) {
+            const color = secondDerivatives[i] >= 0 ? '#3498db' : '#e74c3c';
+            bodyHtml += `<td style="color:${color};">${format(secondDerivatives[i])}</td>`;
+        }
+        if (showInteg) {
+            bodyHtml += `<td style="color:#8e44ad;">${format(integrals[i])}</td>`;
+        }
+        bodyHtml += '</tr>';
+    }
+    
+    tbody.innerHTML = bodyHtml;
+}
+
+// Actualizar resumen estadístico
+function updateTableSummary(yValues, integrals, xValues) {
+    const summaryDiv = document.getElementById('tableSummary');
+    if (!summaryDiv) return;
+    
+    const validY = yValues.filter(v => !isNaN(v) && isFinite(v));
+    if (validY.length === 0) {
+        summaryDiv.innerHTML = '<span>📊 No hay datos válidos para mostrar</span>';
+        return;
+    }
+    
+    const maxY = Math.max(...validY);
+    const minY = Math.min(...validY);
+    const avgY = validY.reduce((a,b) => a + b, 0) / validY.length;
+    const totalPoints = yValues.length;
+    
+    const areaUnderCurve = integrals.length > 0 ? integrals[integrals.length - 1] : 0;
+    const domain = [xValues[0], xValues[xValues.length - 1]];
+    
+    summaryDiv.innerHTML = `
+        <span class="summary-item">📐 Puntos: ${totalPoints}</span>
+        <span class="summary-item">📈 Máx: ${maxY.toFixed(4)}</span>
+        <span class="summary-item">📉 Mín: ${minY.toFixed(4)}</span>
+        <span class="summary-item">📊 Media: ${avgY.toFixed(4)}</span>
+        <span class="summary-item">📏 Dominio: [${domain[0].toFixed(2)}, ${domain[1].toFixed(2)}]</span>
+        ${areaUnderCurve !== 0 ? `<span class="summary-item">🔲 Área aprox: ${areaUnderCurve.toFixed(4)}</span>` : ''}
+    `;
+}
+
+// Exportar tabla a CSV
+function exportTableToCSV() {
+    if (currentTableData.xValues.length === 0) {
+        alert('No hay datos para exportar. Genera una tabla primero.');
+        return;
+    }
+    
+    const { xValues, yValues, derivatives, secondDerivatives, integrals, decimals, 
+            showDeriv, showInteg, showSecondDeriv, functionStr } = currentTableData;
+    
+    let csvRows = [];
+    
+    // Encabezados
+    let headers = ['x', 'f(x)'];
+    if (showDeriv) headers.push("f'(x)");
+    if (showSecondDeriv) headers.push("f''(x)");
+    if (showInteg) headers.push('∫f(x)dx');
+    csvRows.push(headers.join(','));
+    
+    // Datos
+    const formatCSV = (val) => {
+        if (isNaN(val) || !isFinite(val)) return '';
+        return val.toFixed(decimals);
+    };
+    
+    for (let i = 0; i < xValues.length; i++) {
+        let row = [formatCSV(xValues[i]), formatCSV(yValues[i])];
+        if (showDeriv) row.push(formatCSV(derivatives[i]));
+        if (showSecondDeriv) row.push(formatCSV(secondDerivatives[i]));
+        if (showInteg) row.push(formatCSV(integrals[i]));
+        csvRows.push(row.join(','));
+    }
+    
+    // Agregar metadatos
+    const date = new Date().toISOString().split('T')[0];
+    const csvContent = `# Función: ${functionStr}\n# Generado: ${date}\n# Puntos: ${xValues.length}\n` + csvRows.join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `tabla_${functionStr.replace(/[^a-z0-9]/gi, '_')}_${date}.csv`;
+    link.click();
+    
+    showMessage('📥 Tabla exportada a CSV');
+}
+
+// Copiar tabla al portapapeles
+function copyTableToClipboard() {
+    const table = document.getElementById('valuesTable');
+    if (!table) return;
+    
+    // Crear representación textual de la tabla
+    const rows = table.querySelectorAll('tr');
+    let textContent = '';
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('th, td');
+        const rowText = Array.from(cells).map(cell => cell.innerText.trim()).join('\t');
+        textContent += rowText + '\n';
+    });
+    
+    navigator.clipboard.writeText(textContent).then(() => {
+        showMessage('📋 Tabla copiada al portapapeles');
+    }).catch(() => {
+        alert('No se pudo copiar la tabla');
+    });
+}
+
+// Ayuda para la tabla
+function showTableHelp() {
+    alert(
+        '📊 TABLA DE VALORES - GUÍA RÁPIDA\n\n' +
+        '📐 FUNCIÓN:\n' +
+        '• Escribe cualquier función matemática válida\n' +
+        '• Ejemplos: sin(x), cos(x), x^2, exp(-x), log(x), sqrt(x)\n\n' +
+        '🔢 SUCESIÓN:\n' +
+        '• Desde: valor inicial de x\n' +
+        '• Hasta: valor final de x\n' +
+        '• Paso: incremento entre valores (Δx)\n\n' +
+        '📈 COLUMNAS ADICIONALES:\n' +
+        '• Derivada: f\'(x) calculada numéricamente\n' +
+        '• Segunda derivada: f\'\'(x)\n' +
+        '• Integral: ∫f(x)dx (método del trapecio)\n\n' +
+        '💾 EXPORTAR:\n' +
+        '• CSV: descarga como archivo .csv\n' +
+        '• Copiar: copia la tabla al portapapeles\n\n' +
+        '📊 RESUMEN:\n' +
+        '• Muestra estadísticas: máximo, mínimo, media, área bajo la curva'
+    );
+}
+
+// ============================================
+// MODO OSCURO/CLARO
+// ============================================
+
+// ============================================
+// MODO OSCURO/CLARO CON LOCALSTORAGE
+// ============================================
+
+function toggleTheme() {
+    const body = document.body;
+    const themeBtn = document.getElementById('themeFloatBtn');
+    
+    if (body.classList.contains('dark-mode')) {
+        body.classList.remove('dark-mode');
+        if (themeBtn) themeBtn.innerHTML = '🌙';
+        localStorage.setItem('nahomiTheme', 'light');
+    } else {
+        body.classList.add('dark-mode');
+        if (themeBtn) themeBtn.innerHTML = '☀️';
+        localStorage.setItem('nahomiTheme', 'dark');
+    }
+}
+
+// Cargar tema guardado al iniciar
+function loadTheme() {
+    const savedTheme = localStorage.getItem('nahomiTheme');
+    const themeBtn = document.getElementById('themeFloatBtn');
+    
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        if (themeBtn) themeBtn.innerHTML = '☀️';
+    } else {
+        document.body.classList.remove('dark-mode');
+        if (themeBtn) themeBtn.innerHTML = '🌙';
+    }
+}
+
+
+// ============================================
+// NUEVO MÓDULO: VISUALIZADOR DE CURVAS
+// ============================================
+
+// Variables globales para el gráfico
+let graphCanvas, graphCtx;
+let currentFunction = (x) => Math.sin(x);
+let currentFunctionStr = 'sin(x)';
+let graphXMin = -5, graphXMax = 5;
+let graphYMin = -2, graphYMax = 2;
+let graphZoom = 1;
+let graphGridX = 20, graphGridY = 20;
+
+// Inicializar panel de gráficos
+function initGraphPanel() {
+    graphCanvas = document.getElementById('graphCanvas');
+    if (!graphCanvas) return;
+    
+    graphCtx = graphCanvas.getContext('2d');
+    
+    // Configurar tamaño fijo
+    graphCanvas.width = 700;
+    graphCanvas.height = 450;
+    
+    // Eventos
+    const xMinInput = document.getElementById('xMin');
+    const xMaxInput = document.getElementById('xMax');
+    const yMinInput = document.getElementById('yMin');
+    const yMaxInput = document.getElementById('yMax');
+    const gridXSlider = document.getElementById('gridX');
+    const gridYSlider = document.getElementById('gridY');
+    const zoomSlider = document.getElementById('zoomLevel');
+    
+    if (xMinInput) xMinInput.addEventListener('change', applyGraphRange);
+    if (xMaxInput) xMaxInput.addEventListener('change', applyGraphRange);
+    if (yMinInput) yMinInput.addEventListener('change', applyGraphRange);
+    if (yMaxInput) yMaxInput.addEventListener('change', applyGraphRange);
+    if (gridXSlider) {
+        gridXSlider.addEventListener('input', (e) => {
+            document.getElementById('gridXVal').innerText = e.target.value;
+            graphGridX = parseInt(e.target.value);
+            drawGraph();
+        });
+    }
+    if (gridYSlider) {
+        gridYSlider.addEventListener('input', (e) => {
+            document.getElementById('gridYVal').innerText = e.target.value;
+            graphGridY = parseInt(e.target.value);
+            drawGraph();
+        });
+    }
+    if (zoomSlider) {
+        zoomSlider.addEventListener('input', (e) => {
+            const zoom = parseFloat(e.target.value);
+            document.getElementById('zoomVal').innerText = zoom.toFixed(2) + 'x';
+            applyZoom(zoom);
+        });
+    }
+    
+    // Mouse tracking para coordenadas
+    graphCanvas.addEventListener('mousemove', trackGraphCoords);
+    graphCanvas.addEventListener('click', (e) => {
+        const coords = getCanvasCoords(e);
+        if (coords) {
+            const val = evaluateFunctionAtX(coords.x);
+            document.getElementById('graphCoords').innerHTML = 
+                `🖱️ Click en (${coords.x.toFixed(4)}, ${val.toFixed(4)}) - f(${coords.x.toFixed(4)}) = ${val.toFixed(4)}`;
+        }
+    });
+    
+    drawGraph();
+}
+
+// Evaluar función actual en un punto x
+function evaluateFunctionAtX(x) {
+    try {
+        // Reemplazar operadores para seguridad
+        let expr = currentFunctionStr
+            .replace(/\\?sin/g, 'Math.sin')
+            .replace(/\\?cos/g, 'Math.cos')
+            .replace(/\\?tan/g, 'Math.tan')
+            .replace(/\\?exp/g, 'Math.exp')
+            .replace(/\\?log/g, 'Math.log10')
+            .replace(/\\?ln/g, 'Math.log')
+            .replace(/\\?sqrt/g, 'Math.sqrt')
+            .replace(/\\?abs/g, 'Math.abs')
+            .replace(/\\?pow/g, 'Math.pow')
+            .replace(/\\?PI/g, 'Math.PI')
+            .replace(/\\?E/g, 'Math.E');
+        
+        // Función evaluadora segura
+        const fn = new Function('x', 'return ' + expr);
+        const result = fn(x);
+        return isFinite(result) ? result : NaN;
+    } catch(e) {
+        return NaN;
+    }
+}
+
+// Actualizar función desde input
+function updateGraphFunction() {
+    const input = document.getElementById('functionInput');
+    if (!input) return;
+    
+    const funcStr = input.value.trim();
+    if (!funcStr) return;
+    
+    // Validar función
+    try {
+        const testFn = new Function('x', 'return ' + funcStr.replace(/sin|cos|tan|exp|log|sqrt|abs/g, 'Math.$&'));
+        testFn(1);
+        currentFunctionStr = funcStr;
+        currentFunction = (x) => evaluateFunctionAtX(x);
+        drawGraph();
+        showMessage('✅ Función actualizada: f(x) = ' + funcStr);
+    } catch(e) {
+        alert('Función inválida: ' + e.message);
+    }
+}
+
+// Dibujar gráfico completo
+function drawGraph() {
+    if (!graphCtx || !graphCanvas) return;
+    
+    const w = graphCanvas.width;
+    const h = graphCanvas.height;
+    const margin = { left: 50, right: 25, top: 25, bottom: 40 };
+    const plotW = w - margin.left - margin.right;
+    const plotH = h - margin.top - margin.bottom;
+    
+    // Limpiar
+    graphCtx.fillStyle = '#ffffff';
+    graphCtx.fillRect(0, 0, w, h);
+    
+    // Funciones de mapeo
+    function toCanvasX(x) {
+        return margin.left + ((x - graphXMin) / (graphXMax - graphXMin)) * plotW;
+    }
+    
+    function toCanvasY(y) {
+        return margin.top + plotH - ((y - graphYMin) / (graphYMax - graphYMin)) * plotH;
+    }
+    
+    // Dibujar grid
+    graphCtx.save();
+    graphCtx.strokeStyle = '#cbd5e1';
+    graphCtx.lineWidth = 0.5;
+    
+    // Grid vertical
+    for (let i = 0; i <= graphGridX; i++) {
+        const x = graphXMin + (i / graphGridX) * (graphXMax - graphXMin);
+        const xc = toCanvasX(x);
+        graphCtx.beginPath();
+        graphCtx.moveTo(xc, margin.top);
+        graphCtx.lineTo(xc, margin.top + plotH);
+        graphCtx.stroke();
+    }
+    
+    // Grid horizontal
+    for (let i = 0; i <= graphGridY; i++) {
+        const y = graphYMin + (i / graphGridY) * (graphYMax - graphYMin);
+        const yc = toCanvasY(y);
+        graphCtx.beginPath();
+        graphCtx.moveTo(margin.left, yc);
+        graphCtx.lineTo(margin.left + plotW, yc);
+        graphCtx.stroke();
+    }
+    
+    // Ejes principales
+    graphCtx.beginPath();
+    graphCtx.lineWidth = 1.5;
+    graphCtx.strokeStyle = '#333';
+    
+    const yZero = toCanvasY(0);
+    if (yZero >= margin.top && yZero <= margin.top + plotH) {
+        graphCtx.moveTo(margin.left, yZero);
+        graphCtx.lineTo(margin.left + plotW, yZero);
+        graphCtx.stroke();
+    }
+    
+    const xZero = toCanvasX(0);
+    if (xZero >= margin.left && xZero <= margin.left + plotW) {
+        graphCtx.moveTo(xZero, margin.top);
+        graphCtx.lineTo(xZero, margin.top + plotH);
+        graphCtx.stroke();
+    }
+    
+    // Etiquetas de ejes
+    graphCtx.fillStyle = '#555';
+    graphCtx.font = '10px "Segoe UI"';
+    for (let x = Math.ceil(graphXMin); x <= graphXMax; x += Math.ceil((graphXMax - graphXMin) / 5)) {
+        const xc = toCanvasX(x);
+        graphCtx.fillText(x, xc - 3, yZero + (x === 0 ? -8 : 14));
+    }
+    for (let y = Math.ceil(graphYMin); y <= graphYMax; y += Math.ceil((graphYMax - graphYMin) / 5)) {
+        const yc = toCanvasY(y);
+        if (Math.abs(y) > 0.01) graphCtx.fillText(y, xZero - 25, yc + 3);
+    }
+    
+    // Dibujar función
+    graphCtx.beginPath();
+    graphCtx.strokeStyle = '#e63946';
+    graphCtx.lineWidth = 2.5;
+    graphCtx.setLineDash([]);
+    
+    let firstPoint = true;
+    for (let px = 0; px <= plotW; px++) {
+        const x = graphXMin + (px / plotW) * (graphXMax - graphXMin);
+        let y = evaluateFunctionAtX(x);
+        
+        if (isNaN(y) || !isFinite(y)) {
+            firstPoint = true;
+            continue;
+        }
+        
+        // Clamp para no salir del canvas
+        y = Math.max(graphYMin - 0.5, Math.min(graphYMax + 0.5, y));
+        const canvasX = margin.left + px;
+        const canvasY = toCanvasY(y);
+        
+        if (firstPoint) {
+            graphCtx.moveTo(canvasX, canvasY);
+            firstPoint = false;
+        } else {
+            graphCtx.lineTo(canvasX, canvasY);
+        }
+    }
+    graphCtx.stroke();
+    
+    // Título
+    graphCtx.fillStyle = '#1a1a2e';
+    graphCtx.font = 'bold 12px "Segoe UI"';
+    graphCtx.fillText(`f(x) = ${currentFunctionStr}`, margin.left + 10, margin.top - 5);
+    
+    graphCtx.restore();
+}
+
+// Aplicar zoom
+function applyZoom(zoom) {
+    const centerX = (graphXMin + graphXMax) / 2;
+    const centerY = (graphYMin + graphYMax) / 2;
+    const rangeX = (graphXMax - graphXMin) / zoom;
+    const rangeY = (graphYMax - graphYMin) / zoom;
+    
+    graphXMin = centerX - rangeX / 2;
+    graphXMax = centerX + rangeX / 2;
+    graphYMin = centerY - rangeY / 2;
+    graphYMax = centerY + rangeY / 2;
+    
+    updateRangeInputs();
+    drawGraph();
+}
+
+// Aplicar rango manual
+function applyGraphRange() {
+    const xMin = parseFloat(document.getElementById('xMin').value);
+    const xMax = parseFloat(document.getElementById('xMax').value);
+    const yMin = parseFloat(document.getElementById('yMin').value);
+    const yMax = parseFloat(document.getElementById('yMax').value);
+    
+    if (xMin < xMax && yMin < yMax) {
+        graphXMin = xMin;
+        graphXMax = xMax;
+        graphYMin = yMin;
+        graphYMax = yMax;
+        drawGraph();
+    } else {
+        alert('Rango inválido: X min debe ser menor que X max, Y min menor que Y max');
+    }
+}
+
+// Auto escala basado en la función actual
+function autoScaleGraph() {
+    let maxY = -Infinity, minY = Infinity;
+    
+    for (let x = graphXMin; x <= graphXMax; x += (graphXMax - graphXMin) / 200) {
+        const y = evaluateFunctionAtX(x);
+        if (isFinite(y)) {
+            maxY = Math.max(maxY, y);
+            minY = Math.min(minY, y);
+        }
+    }
+    
+    if (isFinite(maxY) && isFinite(minY)) {
+        const padding = (maxY - minY) * 0.1;
+        graphYMin = minY - padding;
+        graphYMax = maxY + padding;
+        
+        // Evitar rangos demasiado pequeños
+        if (graphYMax - graphYMin < 0.1) {
+            graphYMin = graphYMin - 0.5;
+            graphYMax = graphYMax + 0.5;
+        }
+        
+        updateRangeInputs();
+        drawGraph();
+        showMessage(`Auto escala aplicada: Y ∈ [${graphYMin.toFixed(3)}, ${graphYMax.toFixed(3)}]`);
+    }
+}
+
+// Actualizar inputs de rango
+function updateRangeInputs() {
+    const xMinInp = document.getElementById('xMin');
+    const xMaxInp = document.getElementById('xMax');
+    const yMinInp = document.getElementById('yMin');
+    const yMaxInp = document.getElementById('yMax');
+    
+    if (xMinInp) xMinInp.value = graphXMin.toFixed(2);
+    if (xMaxInp) xMaxInp.value = graphXMax.toFixed(2);
+    if (yMinInp) yMinInp.value = graphYMin.toFixed(2);
+    if (yMaxInp) yMaxInp.value = graphYMax.toFixed(2);
+}
+
+// Resetear vista
+function resetGraphView() {
+    graphXMin = -5;
+    graphXMax = 5;
+    graphYMin = -2;
+    graphYMax = 2;
+    graphZoom = 1;
+    
+    const zoomSlider = document.getElementById('zoomLevel');
+    if (zoomSlider) zoomSlider.value = '1';
+    
+    updateRangeInputs();
+    drawGraph();
+}
+
+// Seguimiento de coordenadas del mouse
+function trackGraphCoords(e) {
+    const coords = getCanvasCoords(e);
+    if (coords) {
+        const y = evaluateFunctionAtX(coords.x);
+        const displayY = isFinite(y) ? y.toFixed(4) : 'undefined';
+        document.getElementById('graphCoords').innerHTML = 
+            `🖱️ (${coords.x.toFixed(4)}, ${displayY}) - f(${coords.x.toFixed(4)}) = ${displayY}`;
+    }
+}
+
+function getCanvasCoords(e) {
+    const rect = graphCanvas.getBoundingClientRect();
+    const scaleX = graphCanvas.width / rect.width;
+    const scaleY = graphCanvas.height / rect.height;
+    
+    let mouseX = (e.clientX - rect.left) * scaleX;
+    let mouseY = (e.clientY - rect.top) * scaleY;
+    
+    const margin = { left: 50, right: 25, top: 25, bottom: 40 };
+    const w = graphCanvas.width;
+    const h = graphCanvas.height;
+    const plotW = w - margin.left - margin.right;
+    const plotH = h - margin.top - margin.bottom;
+    
+    if (mouseX >= margin.left && mouseX <= margin.left + plotW &&
+        mouseY >= margin.top && mouseY <= margin.top + plotH) {
+        
+        const x = graphXMin + ((mouseX - margin.left) / plotW) * (graphXMax - graphXMin);
+        return { x: x, y: mouseY };
+    }
+    return null;
+}
+
+// Funciones preestablecidas
+function setPresetFunction(func) {
+    const input = document.getElementById('functionInput');
+    if (input) {
+        input.value = func;
+        updateGraphFunction();
+    }
+}
+
+// Exportar gráfico como imagen
+function exportGraphAsImage() {
+    if (!graphCanvas) return;
+    
+    const link = document.createElement('a');
+    link.download = `grafico_${currentFunctionStr.replace(/[^a-z0-9]/gi, '_')}.png`;
+    link.href = graphCanvas.toDataURL();
+    link.click();
+    showMessage('📸 Gráfico exportado');
+}
+
+// Ayuda
+function showGraphHelp() {
+    alert(
+        '📈 VISUALIZADOR DE CURVAS\n\n' +
+        '• Escribe cualquier función matemática: sin(x), cos(x), tan(x), exp(-x*x), x^2, sqrt(x), abs(x), log(x), ln(x)\n' +
+        '• Usa los sliders para ajustar la resolución del grid\n' +
+        '• Zoom: desliza o usa el control de zoom\n' +
+        '• Rango: ajusta X min/max y Y min/max manualmente\n' +
+        '• Auto escala: ajusta automáticamente el rango Y\n' +
+        '• Mouse: muestra coordenadas en tiempo real\n' +
+        '• Click: fija un punto en la curva\n\n' +
+        '💡 Ejemplos:\n' +
+        '  - sin(x) + cos(2*x)\n' +
+        '  - exp(-x*x/2)/sqrt(2*PI)\n' +
+        '  - 1/(1+exp(-x))  (sigmoide)\n' +
+        '  - x*sin(x)'
+    );
+}
+
+function openFunctionHelp() {
+    showGraphHelp();
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', () => {
+updateDisplay();
+
+loadHistory();
+loadTheme();
+//toggleMode('scientific');
+});
+
+
+// ============================================
+// EXPORTAR FUNCIONES GLOBALMENTE
+// ============================================
+
+// Exportar TODAS las funciones que usan los botones del HTML
+window.appendNumber = appendNumber;
+window.appendOperator = appendOperator;
+window.appendDecimal = appendDecimal;
+window.calculate = calculate;
+window.clearAll = clearAll;
+window.toggleSign = toggleSign;
+window.calculatePercent = calculatePercent;
+window.calculateSquare = calculateSquare;
+window.calculateSquareRoot = calculateSquareRoot;
+window.calculateFactorial = calculateFactorial;
+window.calculatePi = calculatePi;
+window.calculateE = calculateE;
+window.calculateExp = calculateExp;
+window.calculatePower = calculatePower;
+window.memoryStore = memoryStore;
+window.memoryRecall = memoryRecall;
+window.memoryClear = memoryClear;
+window.clearHistory = clearHistory;
+window.downloadHistory = downloadHistory;
+window.uploadHistory = uploadHistory;
+window.previewUploadedFile = previewUploadedFile;
+window.showHistoryInfo = showHistoryInfo;
+window.useHistoryResult = useHistoryResult;
+
+// Las funciones científicas (están como const, hay que exponerlas)
+window.calculateSin = calculateSin;
+window.calculateCos = calculateCos;
+window.calculateTan = calculateTan;
+window.calculateLog = calculateLog;
+window.calculateLn = calculateLn;
+
+// Las nuevas funciones de bases y grados
+window.convertToBase2 = convertToBase2;
+window.convertToBase16 = convertToBase16;
+window.convertToBase62 = convertToBase62;
+window.convertFromBase2 = convertFromBase2;
+window.convertFromBase16 = convertFromBase16;
+window.convertFromBase62 = convertFromBase62;
+window.toggleAngleMode = toggleAngleMode;
+window.convertAngle = convertAngle;
+window.degToRad = degToRad;
+window.radToDeg = radToDeg;
+
+// Exportar funciones globales
+window.togglePanelMode = togglePanelMode;
+window.updateGraphFunction = updateGraphFunction;
+window.applyGraphRange = applyGraphRange;
+window.autoScaleGraph = autoScaleGraph;
+window.resetGraphView = resetGraphView;
+window.setPresetFunction = setPresetFunction;
+window.exportGraphAsImage = exportGraphAsImage;
+window.showGraphHelp = showGraphHelp;
+window.openFunctionHelp = openFunctionHelp;
+
+// Exportar nuevas funciones
+window.togglePanelMode = togglePanelMode;
+window.updateTableFunction = updateTableFunction;
+window.generateTable = generateTable;
+window.exportTableToCSV = exportTableToCSV;
+window.copyTableToClipboard = copyTableToClipboard;
+window.showTableHelp = showTableHelp;
+window.toggleTheme = toggleTheme;
+
+// Exportar funciones de matrices
+window.matrixMode = matrixMode;
+window.matrixAdd = matrixAdd;
+window.matrixMultiply = matrixMultiply;
+window.matrixDeterminant = matrixDeterminant;
+window.matrixTranspose = matrixTranspose;
+        </script>
+
+</body>
+
+</html>
