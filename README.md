@@ -60,7 +60,8 @@ MIT - Libre para usar, modificar y compartir.
 
 ## 👩‍💻 Autor
 
-Tu nombre - [@tusuario](https://github.com/tusuario)
+Abraham Ortiz Ontiveros 
+(abra0x0y0z0@gmail.com)
 
 ---
 
